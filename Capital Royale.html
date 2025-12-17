@@ -583,19 +583,22 @@
 
     <!-- Firebase SDK Imports -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         // TO DEPLOY ON GITHUB: Replace the config below with your own project config!
         // 如需在 GitHub 上運行計數器，請建立 Firebase 專案並在此填入您的配置
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyB_F0071ik2T6enAEVktqWbA7n3IVz2oKA",
+            authDomain: "capital-royale-user-count.firebaseapp.com",
+            databaseURL: "https://capital-royale-user-count-default-rtdb.firebaseio.com",
+            projectId: "capital-royale-user-count",
+            storageBucket: "capital-royale-user-count.firebasestorage.app",
+            messagingSenderId: "539889296684",
+            appId: "1:539889296684:web:6fd882a79d5808be033889"
+            measurementId: "G-X96PGDL4H4"
         };
         
         // App ID for Firestore path
@@ -605,6 +608,7 @@
             try {
                 // Initialize Firebase
                 const app = initializeApp(firebaseConfig);
+                const analytics = getAnalytics(app);
                 const auth = getAuth(app);
                 const db = getFirestore(app);
 
@@ -2371,3 +2375,4 @@
     </script>
 </body>
 </html>
+
