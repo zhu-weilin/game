@@ -764,6 +764,16 @@
             document.getElementById('start-btn').addEventListener('click', () => {
                 initAudio();
                 requestGyro(); // Request gyro permissions on user interaction
+                
+                // Request Fullscreen on Mobile
+                if (isMobile) {
+                    const docEl = document.documentElement;
+                    const requestFull = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen || docEl.mozRequestFullScreen;
+                    if (requestFull) {
+                        requestFull.call(docEl).catch(e => console.log("Fullscreen request failed", e));
+                    }
+                }
+
                 startGame();
             });
             document.getElementById('restart-btn').addEventListener('click', resetGame);
