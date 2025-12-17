@@ -39,6 +39,7 @@
             padding: 20px;
             text-shadow: 0 0 5px rgba(0,0,0,0.8);
             z-index: 10;
+            align-items: flex-start; /* Align to top */
         }
 
         /* Market Ticker */
@@ -78,27 +79,29 @@
             text-align: right;
             color: #fff;
             font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
         }
 
-        /* Grenade HUD */
+        /* Grenade HUD - Moved to top right */
         #grenade-hud {
-            position: absolute;
-            bottom: 100px;
-            right: 30px;
+            margin-top: 10px;
             color: #fff;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 5px;
             opacity: 0.3; /* Dim when empty */
             transition: opacity 0.3s;
         }
         #grenade-hud.has-ammo {
             opacity: 1;
             text-shadow: 0 0 10px #00ff00;
+            color: #00ff00;
         }
         .grenade-icon {
-            font-size: 2rem;
+            font-size: 1.5rem;
         }
 
         /* Interaction Prompt */
@@ -124,7 +127,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             width: 500px;
-            max-width: 90%; /* Mobile fix */
+            max-width: 90%; 
             background: #001100;
             border: 4px solid #00ff00;
             color: #00ff00;
@@ -307,8 +310,8 @@
             z-index: 10;
             pointer-events: auto;
             text-align: center;
-            padding: 20px; /* Add padding to prevent edge touching */
-            box-sizing: border-box; /* Ensure padding is included in width */
+            padding: 20px; 
+            box-sizing: border-box; 
         }
 
         h1 { font-size: 4rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 5px; color: #ff3333; text-shadow: 4px 4px 0px #550000; }
@@ -328,6 +331,16 @@
             box-shadow: 4px 4px 0px #000;
         }
         button.main-btn:active { transform: scale(0.95); box-shadow: 2px 2px 0px #000; }
+
+        #player-count {
+            color: #00ff00;
+            font-size: 1rem;
+            margin-top: 10px;
+            opacity: 0.8;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-family: monospace;
+        }
 
         /* Mobile Controls */
         #mobile-controls {
@@ -484,14 +497,14 @@
                 <div id="level-name" style="font-weight:bold;">關卡 1</div>
                 <div id="objective" style="color:#aaa;">狀態：生存</div>
                 <div id="weapon-name" style="color:orange; margin-top:5px;">武器：工業釘槍</div>
+                <!-- Grenade HUD Moved Here -->
+                <div id="grenade-hud">
+                    <span class="grenade-icon">💣</span>
+                    <span id="grenade-count">0</span>
+                </div>
             </div>
         </div>
         
-        <div id="grenade-hud">
-            <span class="grenade-icon">💣</span>
-            <span id="grenade-count">0</span>
-        </div>
-
         <div id="interaction-prompt">按下 [E] 互動</div>
 
         <!-- Sniper Scope Overlay -->
@@ -549,6 +562,7 @@
         <p style="color: #00ff00;">信用點數 = 生命。每一次射擊都需要成本。</p>
         <p>電腦：WASD 移動，滑鼠射擊，E 互動，P 開發者模式。<br>按 [R] 鍵開啟/關閉狙擊鏡。按 [G] 投擲手榴彈。<br>手機：左側搖桿移動，右側滑動視角，點擊建築物可互動。</p>
         <button id="start-btn" class="main-btn">進入系統</button>
+        <div id="player-count">累積玩家：讀取中...</div>
     </div>
 
     <!-- Game Over Screen -->
@@ -566,6 +580,66 @@
         <h2 id="victory-score">最終財富：$1,000,000</h2>
         <button id="replay-btn" class="main-btn">建立新經濟</button>
     </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // TO DEPLOY ON GITHUB: Replace the config below with your own project config!
+        // 如需在 GitHub 上運行計數器，請建立 Firebase 專案並在此填入您的配置
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // App ID for Firestore path
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'capital-royale-default';
+
+        async function initFirebaseCounter() {
+            try {
+                // Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+
+                // Authenticate anonymously
+                await signInAnonymously(auth);
+
+                // Reference to the global stats document
+                // Path must be: /artifacts/{appId}/public/data/stats
+                const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'global_stats');
+
+                // Try to get document
+                try {
+                    await updateDoc(statsRef, {
+                        visits: increment(1)
+                    });
+                } catch (e) {
+                    // If doc doesn't exist, create it
+                    await setDoc(statsRef, { visits: 1 }, { merge: true });
+                }
+
+                // Read back the count
+                const snap = await getDoc(statsRef);
+                if (snap.exists()) {
+                    const count = snap.data().visits || 0;
+                    document.getElementById('player-count').innerText = `累積玩家：${count}`;
+                }
+            } catch (error) {
+                console.log("Firebase Init/Counter Error (Ignore if not configured):", error);
+                document.getElementById('player-count').innerText = `累積玩家：(離線)`;
+            }
+        }
+
+        // Run counter on load
+        initFirebaseCounter();
+    </script>
 
     <!-- Import Map for Three.js -->
     <script type="importmap">
@@ -704,6 +778,7 @@
         
         // Entities
         let projectiles = [];
+        let particles = []; // Particle System
         let enemies = [];
         let worldObjects = [];
         let enemyProjectiles = [];
@@ -808,11 +883,6 @@
             // Add mobile tap interaction listener to the canvas
             renderer.domElement.addEventListener('click', (event) => {
                 if (!isMobile || gameState !== 'PLAYING' || isPopupOpen) return;
-
-                // Simple raycast from center of screen (where crosshair is) or touch point?
-                // Standard FPS interaction is usually "tap button" or "look at object and tap".
-                // But user asked for "click to start trading".
-                // Let's raycast from the click position.
                 
                 const mouse = new THREE.Vector2();
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -829,7 +899,6 @@
                     const hit = intersects[0].object;
                     let targetItem = null;
                     
-                    // The hit object might be a child of the group we stored
                     for (const item of interactables) {
                         let isChild = false;
                         item.mesh.traverse(c => { if(c === hit) isChild = true; });
@@ -841,7 +910,7 @@
 
                     if (targetItem) {
                         const dist = controls.getObject().position.distanceTo(targetItem.mesh.position);
-                        if (dist < 25) { // Slightly larger radius for touch ease
+                        if (dist < 25) { 
                              window.openPopup(targetItem.type);
                         } else {
                              createFloater("太遠了！", 0, 0);
@@ -864,30 +933,19 @@
                     })
                     .catch(console.error);
             } else {
-                // Non-iOS devices usually don't need permission or support it directly
                 gyroEnabled = true;
             }
         }
         
         function handleGyro(event) {
             if (!gyroEnabled || gameState !== 'PLAYING') return;
-            
-            // Using rotationRate to act as mouse delta
             const rotationRate = event.rotationRate;
             if (!rotationRate) return;
-            
-            // Landscape mode assumption:
-            // Alpha (Z) -> Yaw (Left/Right)
-            // Beta (X) -> Pitch (Up/Down)
-            // Sensitivity multiplier
-            const sensitivity = 0.0005; // Very small for fine tuning
-            
+            const sensitivity = 0.0005; 
             if (rotationRate.alpha) {
-                // Yaw
                 controls.getObject().rotation.y -= rotationRate.alpha * sensitivity;
             }
             if (rotationRate.beta) {
-                // Pitch
                 const pitch = controls.getObject().rotation.x - rotationRate.beta * sensitivity;
                 controls.getObject().rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
             }
@@ -897,21 +955,18 @@
         function createPlayerWeapon() {
             const group = new THREE.Group();
             
-            // Gun Body
             const bodyGeo = new THREE.BoxGeometry(0.15, 0.2, 0.8);
             const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.2 });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.position.set(0.3, -0.3, -0.6);
             group.add(body);
 
-            // Barrel
             const barrelGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0);
             barrelGeo.rotateX(Math.PI/2);
             const barrel = new THREE.Mesh(barrelGeo, bodyMat);
             barrel.position.set(0.3, -0.2, -1.1);
             group.add(barrel);
 
-            // Scope Mount
             const scopeMountGeo = new THREE.BoxGeometry(0.08, 0.08, 0.3);
             const scopeMount = new THREE.Mesh(scopeMountGeo, bodyMat);
             scopeMount.position.set(0.3, -0.15, -0.6);
@@ -924,16 +979,16 @@
         function toggleScope() {
             isZoomed = !isZoomed;
             if (isZoomed) {
-                camera.fov = 20; // Zoom in
+                camera.fov = 20; 
                 document.getElementById('sniper-scope').style.display = 'block';
                 document.getElementById('crosshair').style.display = 'none';
-                if(playerWeapon) playerWeapon.visible = false; // Hide gun model
+                if(playerWeapon) playerWeapon.visible = false; 
                 playTone(800, 0.05, 'sine', 0.1);
             } else {
-                camera.fov = 75; // Reset zoom
+                camera.fov = 75; 
                 document.getElementById('sniper-scope').style.display = 'none';
                 document.getElementById('crosshair').style.display = 'block';
-                if(playerWeapon) playerWeapon.visible = true; // Show gun model
+                if(playerWeapon) playerWeapon.visible = true; 
                 playTone(600, 0.05, 'sine', 0.1);
             }
             camera.updateProjectionMatrix();
@@ -951,18 +1006,15 @@
             const startPos = controls.getObject().position.clone();
             const dir = new THREE.Vector3();
             controls.getDirection(dir);
-            
-            // Spawn in front of player
             mesh.position.copy(startPos).add(dir.clone().multiplyScalar(1));
             
-            // Physics
             const velocity = dir.multiplyScalar(15);
-            velocity.y += 5; // Arch up
+            velocity.y += 5; 
 
             scene.add(mesh);
             grenades.push({ mesh: mesh, velocity: velocity, life: 3.0 });
             
-            playTone(200, 0.1, 'square', 0.5); // Throw sound
+            playTone(200, 0.1, 'square', 0.5); 
         }
 
         function updateGrenadeUI() {
@@ -980,6 +1032,32 @@
             mesh.position.y += 1;
             scene.add(mesh);
             pickups.push({ mesh: mesh, type: 'grenade' });
+        }
+        
+        // --- PARTICLE SYSTEM ---
+        function spawnExplosion(pos, color) {
+            const particleCount = 15;
+            const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+            const mat = new THREE.MeshBasicMaterial({ color: color });
+            
+            for (let i = 0; i < particleCount; i++) {
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                // Random position offset
+                mesh.position.x += (Math.random() - 0.5) * 1;
+                mesh.position.y += (Math.random() - 0.5) * 1;
+                mesh.position.z += (Math.random() - 0.5) * 1;
+
+                // Random Velocity
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10 + 5, // Upward bias
+                    (Math.random() - 0.5) * 10
+                );
+
+                scene.add(mesh);
+                particles.push({ mesh: mesh, velocity: velocity, life: 1.0 });
+            }
         }
 
         // --- MARKET LOGIC ---
@@ -1123,6 +1201,8 @@
             grenades = [];
             pickups.forEach(p => scene.remove(p.mesh));
             pickups = [];
+            particles.forEach(p => scene.remove(p.mesh));
+            particles = [];
             if(boss) { scene.remove(boss.mesh); boss = null; }
 
             buildLevel(currentLevel);
@@ -1248,8 +1328,6 @@
             fireBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if(gameState === 'PLAYING' && !isPopupOpen) {
-                    // Mobile Grenade Logic: 
-                    // If has grenade, first tap throws it. Subsequent taps shoot bullets.
                     if (grenadeCount > 0) {
                         throwGrenade();
                     } else {
@@ -1309,6 +1387,8 @@
             grenades = [];
             pickups.forEach(p => scene.remove(p.mesh));
             pickups = [];
+            particles.forEach(p => scene.remove(p.mesh));
+            particles = [];
             if(boss) { scene.remove(boss.mesh); boss = null; }
 
             buildLevel(1);
@@ -1558,6 +1638,8 @@
             pickups = [];
             grenades.forEach(g => scene.remove(g.mesh));
             grenades = [];
+            particles.forEach(p => scene.remove(p.mesh));
+            particles = [];
 
             const segments = 128; 
             const floorGeo = new THREE.PlaneGeometry(2000, 2000, segments, segments);
@@ -1837,6 +1919,30 @@
                     item.mesh.children[1].material.color.setHSL(0.5, 1, pulse * 0.5);
                 }
             });
+
+            // Animate Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life -= delta;
+                p.mesh.position.add(p.velocity.clone().multiplyScalar(delta));
+                p.velocity.y -= 9.8 * delta; // Gravity
+                p.mesh.rotation.x += delta;
+                p.mesh.rotation.y += delta;
+                
+                // Ground collision
+                const gH = getTerrainHeight(p.mesh.position.x, p.mesh.position.z);
+                if(p.mesh.position.y < gH) {
+                    p.mesh.position.y = gH;
+                    p.velocity.y = 0;
+                    p.velocity.x *= 0.5;
+                    p.velocity.z *= 0.5;
+                }
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
             
             // Animate Pickups
             for (let i = pickups.length - 1; i >= 0; i--) {
@@ -1983,6 +2089,9 @@
                                 if (activeMarketEvent && activeMarketEvent.id === 'DEPRESSION') gain *= 0.5;
                                 gain = Math.floor(gain);
 
+                                // Effect
+                                spawnExplosion(enemy.mesh.position, enemy.mesh.children[0].material.color);
+
                                 credits += gain;
                                 createFloater(`+$${gain}`, 0, 0);
                                 scene.remove(enemy.mesh);
@@ -2024,7 +2133,7 @@
                             e.hp -= 100; // Massive dmg
                             if (e.hp <= 0) {
                                 scene.remove(e.mesh);
-                                // No loot from nades? Or reduced? Let's give normal loot.
+                                spawnExplosion(e.mesh.position, e.mesh.children[0].material.color);
                                 credits += 50;
                             }
                         }
