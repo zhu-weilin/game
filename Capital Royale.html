@@ -547,7 +547,7 @@
         <h1>資本大逃殺</h1>
         <p>你是機器中的一顆螺絲釘。打破這個循環。</p>
         <p style="color: #00ff00;">信用點數 = 生命。每一次射擊都需要成本。</p>
-        <p>電腦：WASD 移動，滑鼠射擊，E 互動，P 開發者模式。<br>按 [R] 鍵開啟/關閉狙擊鏡。按 [G] 投擲手榴彈。<br>手機：左側搖桿移動，右側滑動視角，傾斜手機微調準心。</p>
+        <p>電腦：WASD 移動，滑鼠射擊，E 互動，P 開發者模式。<br>按 [R] 鍵開啟/關閉狙擊鏡。按 [G] 投擲手榴彈。<br>手機：左側搖桿移動，右側滑動視角，點擊建築物可互動。</p>
         <button id="start-btn" class="main-btn">進入系統</button>
     </div>
 
@@ -804,6 +804,51 @@
             
             // Add device motion listener for gyro aim
             window.addEventListener('devicemotion', handleGyro, true);
+            
+            // Add mobile tap interaction listener to the canvas
+            renderer.domElement.addEventListener('click', (event) => {
+                if (!isMobile || gameState !== 'PLAYING' || isPopupOpen) return;
+
+                // Simple raycast from center of screen (where crosshair is) or touch point?
+                // Standard FPS interaction is usually "tap button" or "look at object and tap".
+                // But user asked for "click to start trading".
+                // Let's raycast from the click position.
+                
+                const mouse = new THREE.Vector2();
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Collect interactive meshes
+                const targets = interactables.map(i => i.mesh);
+                const intersects = raycaster.intersectObjects(targets, true);
+
+                if (intersects.length > 0) {
+                    // Find root interactive object
+                    const hit = intersects[0].object;
+                    let targetItem = null;
+                    
+                    // The hit object might be a child of the group we stored
+                    for (const item of interactables) {
+                        let isChild = false;
+                        item.mesh.traverse(c => { if(c === hit) isChild = true; });
+                        if(isChild || item.mesh === hit) {
+                            targetItem = item;
+                            break;
+                        }
+                    }
+
+                    if (targetItem) {
+                        const dist = controls.getObject().position.distanceTo(targetItem.mesh.position);
+                        if (dist < 25) { // Slightly larger radius for touch ease
+                             window.openPopup(targetItem.type);
+                        } else {
+                             createFloater("太遠了！", 0, 0);
+                        }
+                    }
+                }
+            });
             
             buildLevel(1);
         }
@@ -1300,6 +1345,13 @@
             
             let weaponName = currentLevel > 2 ? "突擊步槍" : "工業釘槍";
             document.getElementById('weapon-name').innerText = "武器：" + weaponName;
+            
+            // Mobile Interaction Prompt Update
+            const prompt = document.getElementById('interaction-prompt');
+            const actionText = isMobile ? "點擊建築互動" : "按下 [E] 互動";
+            if (prompt.innerText !== actionText && prompt.style.display !== 'none') {
+                prompt.innerText = actionText;
+            }
         }
 
         function createFloater(text, x, y) {
