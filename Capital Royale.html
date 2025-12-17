@@ -124,6 +124,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             width: 500px;
+            max-width: 90%; /* Mobile fix */
             background: #001100;
             border: 4px solid #00ff00;
             color: #00ff00;
@@ -306,6 +307,8 @@
             z-index: 10;
             pointer-events: auto;
             text-align: center;
+            padding: 20px; /* Add padding to prevent edge touching */
+            box-sizing: border-box; /* Ensure padding is included in width */
         }
 
         h1 { font-size: 4rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 5px; color: #ff3333; text-shadow: 4px 4px 0px #550000; }
@@ -436,6 +439,22 @@
             transform: translate(-50%, -50%);
         }
 
+        /* --- Mobile Responsive Fixes --- */
+        @media (max-height: 600px) {
+            h1 { font-size: 2.5rem; margin-bottom: 5px; }
+            h2 { margin-bottom: 5px; font-size: 1.5rem; }
+            p { font-size: 0.9rem; margin-bottom: 10px; max-width: 90%; }
+            button.main-btn { 
+                padding: 8px 25px; 
+                font-size: 1.1rem; 
+                border-width: 2px;
+                box-shadow: 2px 2px 0px #000;
+            }
+            .popup-ui { padding: 10px; width: 400px; }
+            .ui-header { font-size: 1.5rem; margin-bottom: 5px; padding-bottom: 5px; }
+            .ui-result { min-height: 1.5em; font-size: 1rem; }
+            .action-btn { padding: 5px 10px; font-size: 0.9rem; }
+        }
     </style>
 </head>
 <body>
